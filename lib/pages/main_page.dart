@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../models/note.dart';
 import '../widgets/note_fab.dart';
 import '../widgets/notes_grid.dart';
@@ -12,7 +13,13 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  final List<Note> notes = [];
+  late Box<Note> notesBox;
+
+  @override
+  void initState() {
+    super.initState();
+    notesBox = Hive.box<Note>('notes');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +39,8 @@ class _MainPageState extends State<MainPage> {
 
           // Add new note to the list
           if (newNote != null) {
-            setState(() => notes.add(newNote));
+            notesBox.add(newNote);
+            setState(() {}); // Refresh the UI to show the new note
           }
         },
       ),
@@ -42,7 +50,7 @@ class _MainPageState extends State<MainPage> {
           children: [
             // Expanded so the grid can take all remaining space
             Expanded(
-              child: notes.isEmpty
+              child: notesBox.isEmpty
                   ? const Center(
                       child: Text(
                         'No notes yet',
@@ -50,7 +58,7 @@ class _MainPageState extends State<MainPage> {
                       ),
                     )
                   : NotesGrid(
-                      notes: notes,
+                      notes: notesBox.values.toList(),
                       onNoteTap: (index) async {
                         // Open page to edit the tapped note
                         final updatedNote = await Navigator.push<Note>(
@@ -58,14 +66,15 @@ class _MainPageState extends State<MainPage> {
                           MaterialPageRoute(
                             builder: (_) => NewOrEditNotePage(
                               isNewNote: false,
-                              note: notes[index],
+                              note: notesBox.values.toList()[index],
                             ),
                           ),
                         );
 
                         // Update the note in the list if edited
                         if (updatedNote != null) {
-                          setState(() => notes[index] = updatedNote);
+                          notesBox.putAt(index, updatedNote);
+                          setState(() {}); // Refresh the UI to show the updated note
                         }
                       },
                     ),
